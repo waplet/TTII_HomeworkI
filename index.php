@@ -9,23 +9,27 @@
 ///error_reporting(E_ALL);
 //ini_set("display_errorrs","on");
 
+/** 
+// Defining variables **/
 $result_status = ""; //valid values: empty string, "success", "error"
 $result_message = "";
 $target_currencies = array('LVL', 'GBP', 'RUB', 'CHF', 'SEK', 'NOK', 'JPY', 'LTL');
 $source_currencies = array('LVL','EUR');
-if(!empty($_GET))
+
+
+if(!empty($_GET)) // lets check if some get parameters are sent
 {
-	if(!is_numeric($_GET['amount']) || !((float)$_GET['amount'] >= 0))
+	if(!is_numeric($_GET['amount']) || !((float)$_GET['amount'] >= 0))// verifying amount
 	{
 		$result_status = "error";
 		$result_message = "Incorrect amount";
 	}
-	else if(!in_array($_GET['target'],$target_currencies))
+	else if(!in_array($_GET['target'],$target_currencies)) // verifying target currency
 	{
 		$result_status = "error";
 		$result_message = "No currency selected";
 	}
-	else if(!in_array($_GET['source'],$source_currencies))
+	else if(!in_array($_GET['source'],$source_currencies)) // verifying source currency
 	{
 		$result_status = "error";
 		$result_message = "No converting value selected";
@@ -35,7 +39,7 @@ if(!empty($_GET))
 		if($_GET['source'] == "LVL")
 		{
 			$url = 'http://www.bank.lv/vk/xml.xml';
-			$xml = simplexml_load_file($url);
+			$xml = simplexml_load_file($url); // loading an xml source to an object
 			if(!$xml)
 			{
 				$result_status = "error";
@@ -50,25 +54,26 @@ if(!empty($_GET))
 				}
 				else
 				{
+            /** If LVL converting to LVL **/
 					$rate->Rate = 1.0;
 					$rate->Currency = "LVL";
 					$rate->Units = 1;
 					
 				}
-				$result_status = "success";
+				$result_status = "success"; // if we have gone so far, so its success
             
             $lvls = number_format((float)$_GET['amount']*(float)$rate->Rate/(int)$rate->Units,2,'.','');
             
-				$result_message = "Calculation result: ". number_format($_GET['amount'],2,'.','') ." ".$_GET['target']." equals to ".$lvls ." ". $_GET['source'].". ";
+				$result_message = "Calculation result: ". number_format($_GET['amount'],2,'.','') ." ".$_GET['target']." equals to ".$lvls ." ". $_GET['source'].". "; // message for user
 				
-				$rateeur = $xml->xpath("//Currency[ID=\"EUR\"]");
+				$rateeur = $xml->xpath("//Currency[ID=\"EUR\"]"); // getting rates for EUR, will be needed for Gold calculations
 				$rateeur = $rateeur[0];
 				$euros = number_format(number_format((float)$_GET['amount']*(float)$rate->Rate/(int)$rate->Units,2,'.','')/(float)$rateeur->Rate,2,'.','');// no piemeram britu naudas iegustam LVL un tad konvertejam uz euro.
 				$goldfixing = file_get_contents("http://www.goldfixing.com/vars/goldfixing.vars");
-				preg_match_all("/&(am|pm)euro=(.*?) &/", $goldfixing,$prices);
+				preg_match_all("/&(am|pm)euro=(.*?) &/", $goldfixing,$prices); // getting out gold rates with regexp
 				$price = ($prices[2][0] != "") ? (float)$prices[2][0] : (float)$prices[2][1];
 				$ounces = (float)$euros/$price;
-				$result_message .= " Amount of gold you could get: ". number_format($ounces,2,'.','') ." oz";
+				$result_message .= " Amount of gold you could get: ". number_format($ounces,2,'.','') ." oz"; // updating result message
 			}	
 		}
 		else
